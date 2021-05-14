@@ -15,8 +15,8 @@ extension Client {
     
     /// Upload a `File`.
     @discardableResult
-    public func upload(file: File, completion: @escaping UploadCompletion) -> Cancellable {
-        return request(endpoint: FilesEndpoint.uploadFile(file)) { [weak self] result in
+    public func upload(file: File, progress: ProgressBlock? = nil, completion: @escaping UploadCompletion) -> Cancellable {
+        return request(endpoint: FilesEndpoint.uploadFile(file), progress: progress) { [weak self] result in
             if let self = self {
                 result.parseUpload(self.callbackQueue, completion)
             }
@@ -25,14 +25,14 @@ extension Client {
     
     /// Upload a list of `File`.
     @discardableResult
-    public func upload(files: [File], completion: @escaping MultipleUploadCompletion) -> Cancellable {
-        return upload(files: files, endpoint: { FilesEndpoint.uploadFile($0) }, completion: completion)
+    public func upload(files: [File], progress: ProgressBlock? = nil, completion: @escaping MultipleUploadCompletion) -> Cancellable {
+        return upload(files: files, endpoint: { FilesEndpoint.uploadFile($0) }, progress: progress, completion: completion)
     }
     
     /// Delete a file with a given file URL.
     @discardableResult
-    public func delete(fileURL: URL, completion: @escaping StatusCodeCompletion) -> Cancellable {
-        return request(endpoint: FilesEndpoint.deleteFile(fileURL)) { [weak self] result in
+    public func delete(fileURL: URL, progress: ProgressBlock? = nil, completion: @escaping StatusCodeCompletion) -> Cancellable {
+        return request(endpoint: FilesEndpoint.deleteFile(fileURL), progress: progress) { [weak self] result in
             if let self = self {
                 result.parseStatusCode(self.callbackQueue, completion)
             }
@@ -46,8 +46,8 @@ extension Client {
     
     /// Upload an image file.
     @discardableResult
-    public func upload(image: File, completion: @escaping UploadCompletion) -> Cancellable {
-        return request(endpoint: FilesEndpoint.uploadImage(image)) { [weak self] result in
+    public func upload(image: File, progress: ProgressBlock? = nil, completion: @escaping UploadCompletion) -> Cancellable {
+        return request(endpoint: FilesEndpoint.uploadImage(image), progress: progress) { [weak self] result in
             if let self = self {
                 result.parseUpload(self.callbackQueue, completion)
             }
@@ -56,14 +56,14 @@ extension Client {
     
     /// Upload a list of image files.
     @discardableResult
-    public func upload(images: [File], completion: @escaping MultipleUploadCompletion) -> Cancellable {
-        return upload(files: images, endpoint: { FilesEndpoint.uploadImage($0) }, completion: completion)
+    public func upload(images: [File], progress: ProgressBlock? = nil, completion: @escaping MultipleUploadCompletion) -> Cancellable {
+        return upload(files: images, endpoint: { FilesEndpoint.uploadImage($0) }, progress: progress, completion: completion)
     }
     
     /// Delete an image file with a given image URL.
     @discardableResult
-    public func delete(imageURL: URL, completion: @escaping StatusCodeCompletion) -> Cancellable {
-        return request(endpoint: FilesEndpoint.deleteImage(imageURL)) { [weak self] result in
+    public func delete(imageURL: URL, progress: ProgressBlock? = nil, completion: @escaping StatusCodeCompletion) -> Cancellable {
+        return request(endpoint: FilesEndpoint.deleteImage(imageURL), progress: progress) { [weak self] result in
             if let self = self {
                 result.parseStatusCode(self.callbackQueue, completion)
             }
@@ -96,6 +96,7 @@ extension Client {
 extension Client {
     private func upload(files: [File],
                         endpoint: @escaping (_ file: File) -> TargetType,
+                        progress: ProgressBlock?,
                         completion: @escaping MultipleUploadCompletion) -> Cancellable {
         guard files.count > 0 else {
             return SimpleCancellable(isCancelled: true)
@@ -115,7 +116,7 @@ extension Client {
                     return
                 }
                 
-                proxyCancellable.cancellable = self?.request(endpoint: endpoint(files[fileIndex])) { result in
+                proxyCancellable.cancellable = self?.request(endpoint: endpoint(files[fileIndex]), progress: progress) { result in
                     if let self = self {
                         result.parseUpload(self.workingQueue) { result in
                             do {

@@ -212,7 +212,7 @@ extension Task {
 extension Client {
     /// Make a request with a given endpoint.
     @discardableResult
-    func request(endpoint: TargetType, completion: @escaping ClientCompletion) -> Cancellable {
+    func request(endpoint: TargetType, progress: ProgressBlock? = nil, completion: @escaping ClientCompletion) -> Cancellable {
         if token.isEmpty {
             completion(.failure(.clientSetup("Network layer wasn't setup. Probably Token or User wasn't provided or it was bad.")))
             return SimpleCancellable()
@@ -220,7 +220,7 @@ extension Client {
         
         logger?.log(endpoint)
         
-        return networkProvider.request(MultiTarget(endpoint)) { [weak self] result in
+        return networkProvider.request(MultiTarget(endpoint), progress: progress) { [weak self] result in
             guard let self = self else {
                 completion(.failure(.unexpectedError(nil)))
                 return
